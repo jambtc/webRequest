@@ -27,6 +27,7 @@ class webRequest {
 	public function getUrl($url, $ref, array $req = array(), $verb = 'POST', $fresh = false){
 		//$cookieFile = $_SERVER['REMOTE_ADDR'].'-cookie.txt';
 		$cookieFile = 'cookie.txt';
+		$timeout = 10; // wait 10 seconds
 
 		// generate the POST data string
     $post_data = http_build_query($req, '', '&');
@@ -40,6 +41,9 @@ class webRequest {
 			curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 			curl_setopt($ch, CURLOPT_USERAGENT,'Mozilla/4.0 (compatible; MSIE 7.0; Windows NT 5.1; Trident/4.0; InfoPath.2; .NET CLR 2.0.50727)');
 		}
+
+		curl_setopt ( $ch, CURLOPT_TIMEOUT, $timeout );
+		curl_setopt ( $ch, CURLOPT_CONNECTTIMEOUT, $timeout);
 
 		curl_setopt($ch, CURLOPT_URL, $url );
 		curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);  // man-in-the-middle defense by verifying ssl cert.
@@ -67,6 +71,14 @@ class webRequest {
 
 		// run the query
 		$res = curl_exec($ch);
+
+		// check timeout error
+		if ($error_number = curl_errno($ch)) {
+    	if (in_array($error_number, array(CURLE_OPERATION_TIMEDOUT, CURLE_OPERATION_TIMEOUTED))) {
+      	return ( json_encode(array("error"=>true,"error_number"=>524,"info"=>"A timeout occurred!")) );
+    	}
+		}
+		curl_close($ch);
 		return $res;
 	}
 
